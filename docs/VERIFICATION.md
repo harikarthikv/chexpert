@@ -1,69 +1,83 @@
 # Documentation verification
 
-This audit documents the committed [notebook](../chexpert_cv.ipynb) as inspected on 2026-11-09. Notebook cell numbers below are **1-based positions**, including markdown cells; they are not execution counts. Code was inspected without executing training or changing the implementation.
+Audit date: 2026-11-09. The source is the supplied [executed notebook](../chexpert.ipynb), preserved without editing. Cell numbers below are **1-based positions**, including markdown cells, not execution counts. Documentation uses saved outputs and executable code; training was not rerun.
 
-## Available evidence
+## Evidence and execution status
 
-| Check | Finding |
+| Check | Finding / source |
 | --- | --- |
-| Notebook cells | 45 total: 24 markdown and 21 code |
-| Code execution counts | All 21 are null |
-| Saved code outputs | All 21 output lists are empty |
-| Experiment artifacts in the original tracked tree | None; only the notebook, README, and requirements file |
-| Verified performance measurements | None |
+| Notebook structure | 45 cells: 24 markdown, 21 code |
+| Execution | 19 code cells have execution counts; cells 41 and 44 are unexecuted |
+| Error | Cell 39: `ModuleNotFoundError: No module named 'pytorch_grad_cam'` |
+| Run metadata | Python 3.12.13; Papermill start/end on 2026-09-26; `exception: true` |
+| GPU output | Cell 3: Tesla T4 ×2 detected, first GPU 14.56 GB, compute capability (7, 5); code uses `cuda:0` |
+| Data paths | Cell 5: `/kaggle/input/datasets/ashery/chexpert/train.csv` and `valid.csv` |
+| Training | Cells 21, 23, 25, 27, 29: all five models complete five epochs |
+| Held-out evaluation | Cell 35 loads ResNet50 epoch 4; cell 37 prints summary and per-label results |
+| Figures | Cells 9, 31, 37 contain embedded label-distribution, loss, comparison, AUROC, and ROC images |
+| Qualitative analysis | Grad-CAM failed before producing a result; error analysis cell 41 did not execute |
+| Standalone artifacts | Runtime JSON, CSV, checkpoint, and PNG files are not included separately in the repository |
 
-An empty-output notebook does not prove that its author never ran it elsewhere. It means this repository provides no execution evidence from which to verify performance. Narrative claims of completed evaluation are not substitutes for outputs.
+The run completed model training and held-out evaluation, but did not finish the entire notebook. Its later conclusion and clinical discussion are markdown, not evidence of completed execution. The attached read-only snapshot is only introductory markdown, and its attached output JSON is empty; the full workspace notebook supplies the results.
 
-## Claim-to-source map
+## Numeric claims and sources
 
-| README claim | Notebook evidence |
+| README values | Source |
 | --- | --- |
-| CUDA requirement, seed, environment export, output roots | Cell 3 |
-| Observation order, dataset discovery, image resolution | Cell 5 |
-| Schema check for all 14 observations | Cell 7 |
-| Raw label statistics and conditional frontal filtering | Cell 9 |
-| Patient IDs, split fractions, fallback held-out set, disjointness assertions | Cell 11 |
-| U-Ones, blank-label mapping, RGB conversion, gray-image fallback | Cell 13 |
-| Augmentation, normalization, batch size, worker count | Cell 15 |
-| Five backbones, pretrained weights, output heads, HF authentication | Cell 17 |
-| Optimizer, scheduler, early stopping, metrics, cache behavior, checkpointing | Cell 19 |
-| Five-epoch budgets for all models | Cells 21, 23, 25, 27, 29 |
-| Validation comparison and architecture selection | Cell 31 |
-| Positive-weight calculation and ablation invocation | Cell 33 |
-| Checkpoint loading, initialization fallback, freezing | Cell 35 |
-| Held-out evaluation, summary/per-label tables, metric export, ROC plots | Cell 37 |
-| CNN Grad-CAM with explicit finding targets | Cell 39 |
-| Lowest-AUROC finding selection and false-positive/negative gallery | Cell 41 |
-| Narrative clinical interpretation, without supporting saved outputs | Cell 42 |
-| Artifact inventory | Cell 44 |
+| Raw training/validation shapes: (223414, 19), (234, 19) | Cell 7 output |
+| Frontal training pool: 191027 images, 64534 patients | Cell 11 output |
+| `dev-train`: 171927 images, 58080 patients | Cell 11 output |
+| `dev-val`: 19100 images, 6454 patients | Cell 11 output |
+| Held-out: 202 images, 200 patients; zero pairwise overlap | Cell 11 output |
+| Five comparison rows: AUROC, AP, F1, rounded parameter counts, selected epochs, checkpoint times | Cell 31 output |
+| Held-out ResNet50: AUROC 0.8159, AP 0.5359, F1 0.3476, 202 images | Cell 37 summary output |
+| All 14 held-out per-label rows and positive counts | Cell 37 per-label output |
+| Fracture has 0 positives and undefined AUROC/AP; 13 labels contribute to these macro averages | Cell 37 output and cell 19 code |
+| F1 threshold 0.5, macro F1 over all 14 labels | Cell 19 code |
+| ResNet50 selected checkpoint epoch 4 | Cells 31 and 35 outputs |
+| DenseNet121 epoch-5 AUROC 0.8036, retained epoch 4 | Cell 23 log, cell 31 table, cell 19 tolerance |
+| GPU/memory, Python version, execution date | Cell 3 output and notebook metadata |
 
-Dependency lower bounds come from [requirements.txt](../requirements.txt). Python 3.10.12 comes from notebook metadata, not an executed environment export. All numeric training settings in the README are configuration values, not experimental results.
+Values are reproduced at the notebook's displayed precision. Summary values are not recalculated from rounded per-label rows. Raw predictions and full-precision metric JSON files are unavailable, so this audit verifies transcription and code interpretation rather than independently recomputing scores.
+
+## Methodology source map
+
+| Topic | Source cells |
+| --- | --- |
+| CUDA requirement, seed, directories, environment export | 3 |
+| Observation order, discovery, resolver, schema | 5, 7 |
+| Raw statistics before cleaning and frontal filtering | 9 |
+| Patient grouping, fractions, fallback, disjointness | 11 |
+| U-Ones, blanks, RGB, gray-image fallback | 13 |
+| Augmentation, normalization, batch size 32, workers 2 | 15 |
+| Architectures, pretrained weights, 14-output heads, HF access | 17 |
+| Optimizer, learning rates/decay, schedule, AMP, early stopping, metrics, cache | 19 |
+| Five-epoch training calls | 21, 23, 25, 27, 29 |
+| Selection and comparison plots | 31 |
+| Positive weights and cached ablation | 33 |
+| Freezing and held-out evaluation | 35, 37 |
+| Grad-CAM import failure | 39 |
+| Unexecuted error analysis and artifact inventory | 41, 44 |
+
+Declared dependency bounds come from [requirements.txt](../requirements.txt), which remains unchanged. Exact executed package versions cannot be recovered from the printed environment-export confirmation alone.
 
 ## Implementation caveats
 
-The documentation follows executable code where it differs from notebook prose. These findings have been documented without code changes.
+These findings describe the supplied implementation without changing it.
 
-1. **Weighted-loss cache collision (cells 19 and 33).** The ablation constructs a separate `ablation_key` but does not pass it to training. It calls `train_one_model` using the winning baseline key. When the baseline metrics and checkpoint exist, the function returns cached metrics before constructing the weighted loss. The ablation JSON may therefore contain baseline metrics. It cannot establish a weighted-loss benefit. Without the cache, this call would reuse the baseline checkpoint/metric filenames.
-2. **Out-of-memory behavior (cell 19).** The code clears the CUDA cache and continues to the next batch. The markdown promises batch-size reduction and gradient accumulation, which are not implemented. Skipped batches change the effective training exposure.
-3. **Learning-rate floor (cell 19).** The scheduler uses a minimum factor of `0.01` applied to the base learning rate. The floor is `1e-6` for CNNs and `3e-7` for transformers, rather than a universal `1e-6` stated in markdown. These are configured floors, not measured final rates.
-4. **Missing checkpoints (cells 35 and 39).** Final evaluation and Grad-CAM can proceed with a newly initialized classification head if the checkpoint is absent. Such output would not demonstrate a trained classifier's performance.
-5. **Input integrity (cells 9 and 13).** Frontal-only filtering depends on the view column being present. Missing/corrupt images receive gray replacements with unchanged labels. Successful execution alone does not establish valid image ingestion.
-6. **Held-out protocol (cells 13 and 37).** Held-out labels are cleaned before training, while model inference on that set occurs in Section 19. There is one held-out evaluation call in the sequential workflow, but no guard against repeated cell execution. The set may be a training-derived fallback rather than the official validation CSV.
-7. **Metric conventions (cell 19).** The metric named AUPRC is average precision from scikit-learn. Both AUROC and average precision are marked undefined for any single-class label by this implementation. Their macro averages exclude such labels, while macro F1 includes all labels. The included label set matters when comparing runs.
-8. **Timing and selection (cells 19 and 31).** `training_time_seconds` is captured when a new best checkpoint is found, not after the full run finishes. It represents elapsed time up to that improvement. Architecture ranking uses AUROC rounded to four decimals in the comparison table, so close scores can tie after rounding.
-9. **Reproducibility and reuse (cells 3 and 19).** cuDNN benchmarking is enabled with deterministic execution disabled. Cached runs are keyed by model name and file presence; dataset/configuration compatibility is not checked. Checkpoints do not save optimizer/scheduler state for interrupted-run resumption.
-10. **Qualitative outputs (cells 39–42).** Grad-CAM selects available true-positive and false-positive examples, with representative-case fallback; it does not guarantee the balanced mix of correct/incorrect cases described in prose. Grad-CAM and error-gallery exceptions can be caught and reported without producing figures. Clinical discussion remains unverified narrative in the committed notebook.
+1. **Weighted-loss cache reuse is observed.** Cell 33 prints `Resumability: Found completed run for 'resnet50'. Loading cached metrics & checkpoint...` and then reports 0.8035 AUROC / 0.3789 F1 for both losses. It passes the baseline key to training; cache lookup precedes loss construction. Its separate `ablation_key` is unused. These are duplicated baseline scores, not a separately trained weighted-loss result.
+2. **Checkpoint tolerance and rounded ranking matter.** Cell 19 requires AUROC improvement greater than `1e-4`. DenseNet121's final displayed 0.8036 did not trigger a checkpoint; comparison uses epoch 4 at 0.8035. Cell 31 ranks four-decimal values and selects ResNet50, tied with DenseNet121 at that precision. No statistically significant superiority is established.
+3. **Comparison times are time to checkpoint.** `training_time_seconds` is captured on qualifying improvement. Cell 31 reports 5006.5, 4229.0, 5029.3, 4891.2, and 5258.1 seconds in model order. End-of-training logs instead print total durations of 6115.6, 5192.8, 5029.3, 4891.4, and 5258.2 seconds. The README labels comparison times accordingly.
+4. **AUPRC means average precision.** Cell 19 uses `average_precision_score`. Both AP and AUROC are marked undefined for single-class targets and excluded from those macro averages. Macro F1 includes all labels. Held-out Fracture is the excluded label.
+5. **Grad-CAM is not installed automatically.** The updated notebook imports `pytorch_grad_cam` directly. Its missing-package exception occurs before the plotting try/except. Installing the existing requirements into the active kernel is necessary to attempt this section; this task did not install packages or rerun it.
+6. **OOM behavior differs from prose.** Cell 19 clears the CUDA cache and skips the affected batch; it does not reduce batch size or accumulate gradients. Documentation describes code behavior without asserting skipped batches occurred in this run.
+7. **Learning-rate floor differs by family.** Minimum multiplier 0.01 corresponds to configured floors `1e-6` for CNNs and `3e-7` for transformers, rather than the universal `1e-6` in notebook prose. These are bounds, not measured final rates.
+8. **Input fallback can affect validity.** Frontal filtering depends on the view column. Image failures produce gray replacements with unchanged labels. The saved run shows frontal filtering and three successful resolution checks, which do not independently verify every image.
+9. **Held-out protocol is procedural.** This set is frontal official validation, not the challenge test set. Labels are cleaned before training, while inference follows freezing. The sequential workflow has one held-out call and no persistent guard against repeated evaluation.
+10. **Missing-checkpoint fallback remains in code.** Evaluation and Grad-CAM can initialize a new head if a checkpoint is absent. The saved held-out run confirms successful trained-checkpoint loading, so that fallback did not produce its reported scores.
+11. **Reproducibility is limited.** Seed 42 is set, but cuDNN benchmarking is enabled and deterministic execution disabled. Cache reuse does not verify dataset/configuration compatibility. Checkpoints omit optimizer/scheduler state. No repeated seeds, confidence intervals, or external validation results are supplied.
+12. **Preserved notebook prose contains an old filename.** Introductory markdown still refers to the previous notebook name. Repository documentation uses the actual lowercase filename. The replacement notebook is preserved byte-for-byte under the user's no-implementation-edit constraint.
 
-## Evidence needed before reporting results
+## Publication verification
 
-After an authorized GPU run, use the following checks before updating the [README](../README.md):
-
-- Preserve an executed notebook and the environment metadata, split sizes, image-loading warnings, and checkpoint-loading messages.
-- Verify `results/metrics.json` against `results/comparison_table.csv` and saved validation outputs for each completed architecture. Report the actual defined-label coverage for macro metrics.
-- Verify held-out summary and per-label values against `results/final_holdout_metrics.json`; identify whether evaluation used official validation data or the fallback split.
-- Establish that any weighted-loss result came from a separate weighted training run. The current ablation filename alone is insufficient evidence because of the cache collision.
-- Use actual measured parameter counts and clearly label timing as time to the selected checkpoint. Do not present it as full-run duration.
-- Confirm that checkpoints contain trained weights and that any published figures were produced successfully from those weights.
-- Keep validation and held-out results separate; retain undefined metrics rather than replacing them with zero or invented scores.
-
-This documentation task did not run training, install project dependencies, modify notebook cells, or generate experimental results. No runtime reproducibility claim is made.
+The update checks README rows against saved comparison and held-out tables, checks links/anchors, removes the obsolete tracked notebook, and preserves the replacement notebook's file hash. Dependencies remain unchanged. No model, dataset, training code, or notebook outputs were edited, and no experiment was rerun.
